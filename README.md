@@ -61,13 +61,13 @@ After configuration, the AI agent gets these tools:
 
 ### Option 2: Skill
 
-Skill gives the AI agent instructions on how to use `lookin-cli` via shell commands — lighter weight, no MCP config needed. One command auto-detects your AI agent and installs the skill:
+Skill gives the AI agent instructions on how to use `lookin-cli` via shell commands — lighter weight, no MCP config needed. Run in your project directory to install:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/a573412261/lookin-cli/main/skills/install.sh | sh
 ```
 
-Supported platforms: Claude Code, Codex CLI, Gemini CLI, Goose, OpenCode, Cursor, Windsurf, Cline, Roo Code, and the universal `~/.agents/skills/` path.
+This installs the skill into your project's local directories (`.claude/skills/`, `.cursor/rules/`, etc.). Supported: Claude Code, Copilot, Codex CLI, Gemini CLI, Kiro, Goose, OpenCode, Cursor, Windsurf, Cline, Roo Code, Trae.
 
 ### Which to choose?
 
