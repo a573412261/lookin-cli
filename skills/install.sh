@@ -100,80 +100,109 @@ main() {
     # --- Tier 1: Native SKILL.md support (project-local) ---
 
     # Claude Code + VS Code Copilot
-    mkdir -p ".claude/skills"
-    install_skill "$skill_dir" ".claude/skills/$SKILL_NAME"
-    printf "  Claude Code     -> .claude/skills/%s\n" "$SKILL_NAME"
-    installed=$((installed + 1))
+    if [ -d ".claude" ]; then
+        mkdir -p ".claude/skills"
+        install_skill "$skill_dir" ".claude/skills/$SKILL_NAME"
+        printf "  Claude Code     -> .claude/skills/%s\n" "$SKILL_NAME"
+        installed=$((installed + 1))
+    fi
 
     # GitHub Copilot
-    mkdir -p ".github/skills"
-    install_skill "$skill_dir" ".github/skills/$SKILL_NAME"
-    printf "  Copilot         -> .github/skills/%s\n" "$SKILL_NAME"
-    installed=$((installed + 1))
+    if [ -d ".github" ]; then
+        mkdir -p ".github/skills"
+        install_skill "$skill_dir" ".github/skills/$SKILL_NAME"
+        printf "  Copilot         -> .github/skills/%s\n" "$SKILL_NAME"
+        installed=$((installed + 1))
+    fi
 
     # Universal (Codex CLI, Gemini CLI, Kiro, Antigravity)
-    mkdir -p ".agents/skills"
-    install_skill "$skill_dir" ".agents/skills/$SKILL_NAME"
-    printf "  Universal       -> .agents/skills/%s\n" "$SKILL_NAME"
-    installed=$((installed + 1))
+    if [ -d ".agents" ]; then
+        mkdir -p ".agents/skills"
+        install_skill "$skill_dir" ".agents/skills/$SKILL_NAME"
+        printf "  Universal       -> .agents/skills/%s\n" "$SKILL_NAME"
+        installed=$((installed + 1))
+    fi
 
     # Gemini CLI
-    mkdir -p ".gemini/skills"
-    install_skill "$skill_dir" ".gemini/skills/$SKILL_NAME"
-    printf "  Gemini CLI      -> .gemini/skills/%s\n" "$SKILL_NAME"
-    installed=$((installed + 1))
+    if [ -d ".gemini" ]; then
+        mkdir -p ".gemini/skills"
+        install_skill "$skill_dir" ".gemini/skills/$SKILL_NAME"
+        printf "  Gemini CLI      -> .gemini/skills/%s\n" "$SKILL_NAME"
+        installed=$((installed + 1))
+    fi
 
     # Kiro
-    mkdir -p ".kiro/skills"
-    install_skill "$skill_dir" ".kiro/skills/$SKILL_NAME"
-    printf "  Kiro            -> .kiro/skills/%s\n" "$SKILL_NAME"
-    installed=$((installed + 1))
+    if [ -d ".kiro" ]; then
+        mkdir -p ".kiro/skills"
+        install_skill "$skill_dir" ".kiro/skills/$SKILL_NAME"
+        printf "  Kiro            -> .kiro/skills/%s\n" "$SKILL_NAME"
+        installed=$((installed + 1))
+    fi
 
     # Goose
-    mkdir -p ".config/goose/skills"
-    install_skill "$skill_dir" ".config/goose/skills/$SKILL_NAME"
-    printf "  Goose           -> .config/goose/skills/%s\n" "$SKILL_NAME"
-    installed=$((installed + 1))
+    if [ -d ".config/goose" ]; then
+        mkdir -p ".config/goose/skills"
+        install_skill "$skill_dir" ".config/goose/skills/$SKILL_NAME"
+        printf "  Goose           -> .config/goose/skills/%s\n" "$SKILL_NAME"
+        installed=$((installed + 1))
+    fi
 
     # OpenCode
-    mkdir -p ".config/opencode/skills"
-    install_skill "$skill_dir" ".config/opencode/skills/$SKILL_NAME"
-    printf "  OpenCode        -> .config/opencode/skills/%s\n" "$SKILL_NAME"
-    installed=$((installed + 1))
+    if [ -d ".config/opencode" ]; then
+        mkdir -p ".config/opencode/skills"
+        install_skill "$skill_dir" ".config/opencode/skills/$SKILL_NAME"
+        printf "  OpenCode        -> .config/opencode/skills/%s\n" "$SKILL_NAME"
+        installed=$((installed + 1))
+    fi
 
     # --- Tier 2: Format conversion ---
 
     # Cursor
-    mkdir -p ".cursor/rules"
-    generate_cursor_mdc "$skill_dir" ".cursor/rules/$SKILL_NAME.mdc"
-    printf "  Cursor          -> .cursor/rules/%s.mdc\n" "$SKILL_NAME"
-    installed=$((installed + 1))
+    if [ -d ".cursor" ]; then
+        mkdir -p ".cursor/rules"
+        generate_cursor_mdc "$skill_dir" ".cursor/rules/$SKILL_NAME.mdc"
+        printf "  Cursor          -> .cursor/rules/%s.mdc\n" "$SKILL_NAME"
+        installed=$((installed + 1))
+    fi
 
     # Windsurf
-    mkdir -p ".windsurf/rules"
-    generate_md_rule "$skill_dir" ".windsurf/rules/$SKILL_NAME.md"
-    printf "  Windsurf        -> .windsurf/rules/%s.md\n" "$SKILL_NAME"
-    installed=$((installed + 1))
+    if [ -d ".windsurf" ]; then
+        mkdir -p ".windsurf/rules"
+        generate_md_rule "$skill_dir" ".windsurf/rules/$SKILL_NAME.md"
+        printf "  Windsurf        -> .windsurf/rules/%s.md\n" "$SKILL_NAME"
+        installed=$((installed + 1))
+    fi
 
     # Cline
-    mkdir -p ".clinerules"
-    generate_md_rule "$skill_dir" ".clinerules/$SKILL_NAME.md"
-    printf "  Cline           -> .clinerules/%s.md\n" "$SKILL_NAME"
-    installed=$((installed + 1))
+    if [ -d ".clinerules" ]; then
+        generate_md_rule "$skill_dir" ".clinerules/$SKILL_NAME.md"
+        printf "  Cline           -> .clinerules/%s.md\n" "$SKILL_NAME"
+        installed=$((installed + 1))
+    fi
 
     # Roo Code
-    mkdir -p ".roo/rules"
-    generate_md_rule "$skill_dir" ".roo/rules/$SKILL_NAME.md"
-    printf "  Roo Code        -> .roo/rules/%s.md\n" "$SKILL_NAME"
-    installed=$((installed + 1))
+    if [ -d ".roo" ]; then
+        mkdir -p ".roo/rules"
+        generate_md_rule "$skill_dir" ".roo/rules/$SKILL_NAME.md"
+        printf "  Roo Code        -> .roo/rules/%s.md\n" "$SKILL_NAME"
+        installed=$((installed + 1))
+    fi
 
     # Trae
-    mkdir -p ".trae/rules"
-    generate_md_rule "$skill_dir" ".trae/rules/$SKILL_NAME.md"
-    printf "  Trae            -> .trae/rules/%s.md\n" "$SKILL_NAME"
-    installed=$((installed + 1))
+    if [ -d ".trae" ]; then
+        mkdir -p ".trae/rules"
+        generate_md_rule "$skill_dir" ".trae/rules/$SKILL_NAME.md"
+        printf "  Trae            -> .trae/rules/%s.md\n" "$SKILL_NAME"
+        installed=$((installed + 1))
+    fi
 
-    printf "\nDone! Installed to %d location(s) in current project.\n" "$installed"
+    if [ "$installed" -eq 0 ]; then
+        printf "No AI agent directories found in current project.\n"
+        printf "Create one first, e.g.: mkdir .claude\n"
+        exit 1
+    fi
+
+    printf "\nDone! Installed to %d location(s).\n" "$installed"
 }
 
 main
