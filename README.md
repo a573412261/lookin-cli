@@ -27,36 +27,15 @@ git clone https://github.com/a573412261/lookin-cli.git && cd lookin-cli
 swift build -c release && cp .build/release/lookin-cli /usr/local/bin/
 ```
 
-## Usage
+## AI Agent Integration
 
-### CLI Mode
+There are two ways to integrate with AI agents. Choose one:
 
-```bash
-# Discover connectable apps
-lookin-cli ping
+### Option 1: MCP Server (Recommended)
 
-# Get view hierarchy as JSON
-lookin-cli hierarchy
+MCP gives the AI agent native tool access — it calls `lookin_ping`, `lookin_hierarchy` etc. as built-in tools, no shell commands involved.
 
-# Inspect a specific view
-lookin-cli inspect <oid>
-
-# Export view screenshot
-lookin-cli screenshot <oid> --output view.png
-
-# Modify a view attribute
-lookin-cli modify <oid> --attr backgroundColor --value '"#FF0000"'
-```
-
-### MCP Server Mode
-
-Start as an MCP server for AI agent integration:
-
-```bash
-lookin-cli mcp
-```
-
-Configure in Claude Code's MCP settings (`.claude/settings.json`):
+Add to your project's `.claude/settings.json`:
 
 ```json
 {
@@ -69,9 +48,9 @@ Configure in Claude Code's MCP settings (`.claude/settings.json`):
 }
 ```
 
-## MCP Tools
+Or add to `~/.claude/settings.json` for global access.
 
-When running as an MCP server, the following tools are available:
+After configuration, the AI agent gets these tools:
 
 | Tool | Description |
 |------|-------------|
@@ -82,22 +61,51 @@ When running as an MCP server, the following tools are available:
 | `lookin_modify` | Modify a view attribute at runtime |
 | `lookin_search` | Search views by class name, title, or accessibility label |
 
+### Option 2: Skill
+
+Skill gives the AI agent instructions on how to use `lookin-cli` via shell commands — lighter weight, no MCP config needed.
+
+Copy `skill.md` into your project:
+
+```bash
+cp lookin-cli/skill.md /path/to/your/project/.claude/skills/lookin.md
+```
+
+The AI agent will then use `lookin-cli` commands (ping, hierarchy, inspect, etc.) directly via bash when UI debugging is needed.
+
+### Which to choose?
+
+| | MCP | Skill |
+|---|---|---|
+| Setup | Add JSON config | Copy one file |
+| Invocation | AI calls tools natively | AI runs shell commands |
+| Best for | Claude Code, Cursor, etc. | Any AI that can run bash |
+| Output handling | Structured tool results | Stdout JSON parsing |
+
+## CLI Usage (for humans or scripts)
+
+```bash
+lookin-cli ping                              # Discover connectable apps
+lookin-cli hierarchy                         # View hierarchy (JSON tree)
+lookin-cli hierarchy --flat --filter UILabel # Flat list of UILabels
+lookin-cli inspect 0x1ed                     # Inspect a specific view
+lookin-cli search --class UIButton --text OK # Search views
+lookin-cli screenshot --oid 0x1ed -o x.png   # Export screenshot
+lookin-cli mcp                               # Start MCP server
+```
+
 ## Output Format
 
-All commands output JSON to stdout. Example hierarchy output:
+All commands output JSON to stdout:
 
 ```json
 {
-  "class": "UIWindow",
-  "frame": {"x": 0, "y": 0, "width": 393, "height": 852},
-  "oid": "0x7ff12340000",
-  "children": [
-    {
-      "class": "UITabBarController",
-      "frame": {"x": 0, "y": 0, "width": 393, "height": 852},
-      "children": [...]
-    }
-  ]
+  "class": "UIButton",
+  "oid": "0x1ed",
+  "frame": {"x": 12, "y": 413, "width": 48, "height": 48},
+  "isHidden": false,
+  "alpha": 1,
+  "children": [...]
 }
 ```
 
