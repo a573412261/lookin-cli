@@ -55,7 +55,6 @@ After configuration, the AI agent gets these tools:
 | `lookin_ping` | Discover connectable iOS apps |
 | `lookin_hierarchy` | Get the full view hierarchy tree |
 | `lookin_inspect` | Get detailed attributes of a specific view |
-| `lookin_screenshot` | Capture a view's screenshot |
 | `lookin_modify` | Modify a view attribute at runtime |
 | `lookin_search` | Search views by class name, title, or accessibility label |
 

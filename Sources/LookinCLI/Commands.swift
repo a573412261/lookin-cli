@@ -289,48 +289,6 @@ func cmdSearch(classFilter: String?, textFilter: String?, accessibilityLabel: St
     }
 }
 
-func cmdScreenshot(oid: String, outputPath: String) {
-    let client = LookinClient()
-
-    let apps = client.discoverPorts()
-    guard let app = apps.first else {
-        print(jsonOutput(["error": "No app found"]))
-        return
-    }
-
-    do {
-        try client.connect(port: app.port)
-
-        // Get hierarchy first to find the item
-        let hierarchyResponse = try client.sendRequest(type: .hierarchy)
-        guard let hierarchyInfo = hierarchyResponse.data as? LookinHierarchyInfo,
-              let items = hierarchyInfo.displayItems else {
-            print(jsonOutput(["error": "Failed to get hierarchy"]))
-            return
-        }
-
-        guard let targetItem = findItem(items, oid: oid) else {
-            print(jsonOutput(["error": "View with oid \(oid) not found"]))
-            return
-        }
-
-        if let screenshotData = targetItem.soloScreenshot {
-            let url = URL(fileURLWithPath: outputPath)
-            try screenshotData.write(to: url)
-            print(jsonOutput(["success": true, "path": outputPath, "size": screenshotData.count]))
-        } else {
-            // Try fetching the image via dedicated request
-            // For now, report no screenshot available
-            print(jsonOutput(["error": "No screenshot data available for this view"]))
-        }
-
-        client.disconnect()
-    } catch {
-        print(jsonOutput(["error": error.localizedDescription]))
-        client.disconnect()
-    }
-}
-
 func cmdModify(oid: String, attr: String, value: String) {
     print(jsonOutput([
         "error": "Modify command requires LookinServer protocol details for \(attr)",

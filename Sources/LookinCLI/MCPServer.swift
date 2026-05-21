@@ -102,18 +102,6 @@ class MCPServer {
                 ],
             ],
             [
-                "name": "lookin_screenshot",
-                "description": "Save a screenshot of a specific view to a file",
-                "inputSchema": [
-                    "type": "object",
-                    "properties": [
-                        "oid": ["type": "string", "description": "Object ID"],
-                        "output": ["type": "string", "description": "Output file path"],
-                    ],
-                    "required": ["oid", "output"],
-                ],
-            ],
-            [
                 "name": "lookin_modify",
                 "description": "Modify a view attribute at runtime (changes are in-memory only)",
                 "inputSchema": [
@@ -154,13 +142,6 @@ class MCPServer {
             let textFilter = arguments["text"] as? String
             let accLabel = arguments["accessibilityLabel"] as? String
             result = captureOutput { cmdSearch(classFilter: classFilter, textFilter: textFilter, accessibilityLabel: accLabel) }
-
-        case "lookin_screenshot":
-            guard let oid = arguments["oid"] as? String, let output = arguments["output"] as? String else {
-                sendError(id: id, code: -32602, message: "Missing required parameters: oid, output")
-                return
-            }
-            result = captureOutput { cmdScreenshot(oid: oid, outputPath: output) }
 
         case "lookin_modify":
             guard let oid = arguments["oid"] as? String,

@@ -33,13 +33,6 @@ case "search":
         textFilter: opts["text"],
         accessibilityLabel: opts["accessibility-label"]
     )
-case "screenshot":
-    let opts = parseOptions(args)
-    guard let oid = opts["oid"], let output = opts["output"] else {
-        fputs("Error: --oid and --output required\n", stderr)
-        exit(1)
-    }
-    cmdScreenshot(oid: oid, outputPath: output)
 case "modify":
     let opts = parseOptions(args)
     guard let oid = opts["oid"], let attr = opts["attr"], let value = opts["value"] else {
@@ -71,7 +64,6 @@ func printUsage() {
       hierarchy [--flat] [--filter X]  Get view hierarchy (JSON)
       inspect <oid> [--screenshot]     Inspect a specific view
       search [--class X] [--text X]    Search views by criteria
-      screenshot --oid X --output PATH Capture view screenshot
       modify --oid X --attr X --value  Modify a view attribute
       mcp                              Start as MCP server (stdio)
 
