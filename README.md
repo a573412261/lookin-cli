@@ -35,7 +35,7 @@ There are two ways to integrate with AI agents. Choose one:
 
 MCP gives the AI agent native tool access — it calls `lookin_ping`, `lookin_hierarchy` etc. as built-in tools, no shell commands involved.
 
-Add to your project's `.claude/settings.json`:
+Add the following `mcpServers` config to your AI client settings:
 
 ```json
 {
@@ -47,8 +47,6 @@ Add to your project's `.claude/settings.json`:
   }
 }
 ```
-
-Or add to `~/.claude/settings.json` for global access.
 
 After configuration, the AI agent gets these tools:
 
@@ -63,21 +61,19 @@ After configuration, the AI agent gets these tools:
 
 ### Option 2: Skill
 
-Skill gives the AI agent instructions on how to use `lookin-cli` via shell commands — lighter weight, no MCP config needed.
-
-Copy `skill.md` into your project:
+Skill gives the AI agent instructions on how to use `lookin-cli` via shell commands — lighter weight, no MCP config needed. One command auto-detects your AI agent and installs the skill:
 
 ```bash
-cp lookin-cli/skill.md /path/to/your/project/.claude/skills/lookin.md
+curl -fsSL https://raw.githubusercontent.com/a573412261/lookin-cli/main/skills/install.sh | sh
 ```
 
-The AI agent will then use `lookin-cli` commands (ping, hierarchy, inspect, etc.) directly via bash when UI debugging is needed.
+Supported platforms: Claude Code, Codex CLI, Gemini CLI, Goose, OpenCode, Cursor, Windsurf, Cline, Roo Code, and the universal `~/.agents/skills/` path.
 
 ### Which to choose?
 
 | | MCP | Skill |
 |---|---|---|
-| Setup | Add JSON config | Copy one file |
+| Setup | Add JSON config | One-line curl install |
 | Invocation | AI calls tools natively | AI runs shell commands |
 | Best for | Claude Code, Cursor, etc. | Any AI that can run bash |
 | Output handling | Structured tool results | Stdout JSON parsing |
