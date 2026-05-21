@@ -64,3 +64,4 @@ When a real device is connected, pass `--device <id>` to all commands after disc
 - `--device <id>` selects a specific USB device by its usbmuxd device ID; omit to use the first available (simulator or USB)
 - oid values like `0x1ed` come from the hierarchy/search output
 - View frames are in points (not pixels)
+- If `lookin-cli ping` returns no devices despite the app running, the agent sandbox may be blocking USB/socket access. Retry the command with `dangerouslyDisableSandbox: true` to bypass sandbox restrictions and check again.
