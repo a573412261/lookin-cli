@@ -2,36 +2,84 @@ import Foundation
 
 /// High-level client that handles port scanning, connection, and request/response
 class LookinClient {
-    private var channel: TCPChannel?
+    private var channel: (any LookinChannel)?
     private var currentTag: UInt32 = 0
 
-    /// Scan simulator ports and try to connect to an app
+    /// Scan simulator and USB ports; returns all reachable apps.
     func discoverPorts() -> [DiscoveredApp] {
         var apps: [DiscoveredApp] = []
+        apps += discoverSimulatorPorts()
+        apps += discoverUSBPorts()
+        return apps
+    }
 
+    private func discoverSimulatorPorts() -> [DiscoveredApp] {
+        var apps: [DiscoveredApp] = []
         for port in LOOKIN_SIMULATOR_PORT_START...LOOKIN_SIMULATOR_PORT_END {
             let ch = TCPChannel(port: port)
             do {
                 try ch.connect()
-                // Try ping to verify it's a LookinServer
                 let response = try sendPing(channel: ch)
                 if response.lookinServerVersion >= LOOKIN_SUPPORTED_SERVER_MIN
                     && response.lookinServerVersion <= LOOKIN_SUPPORTED_SERVER_MAX {
-                    apps.append(DiscoveredApp(port: port, serverVersion: Int(response.lookinServerVersion)))
+                    apps.append(DiscoveredApp(
+                        port: port,
+                        serverVersion: Int(response.lookinServerVersion),
+                        deviceID: nil,
+                        connectionType: "simulator"
+                    ))
                 }
                 ch.disconnect()
             } catch {
                 ch.disconnect()
             }
         }
-
         return apps
     }
 
-    /// Connect to a specific port
-    func connect(port: Int) throws {
-        channel = TCPChannel(port: port)
-        try channel!.connect()
+    private func discoverUSBPorts() -> [DiscoveredApp] {
+        var apps: [DiscoveredApp] = []
+        let devices: [USBDevice]
+        do {
+            devices = try USBMux().listDevices()
+        } catch {
+            return []
+        }
+
+        for device in devices where device.connectionType == "USB" {
+            for port in LOOKIN_USB_DEVICE_PORT_START...LOOKIN_USB_DEVICE_PORT_END {
+                do {
+                    let tunnelFd = try USBMux().connect(deviceID: device.deviceID, port: port)
+                    let ch = USBChannel(fd: tunnelFd, deviceID: device.deviceID, port: port)
+                    let response = try sendPing(channel: ch)
+                    if response.lookinServerVersion >= LOOKIN_SUPPORTED_SERVER_MIN
+                        && response.lookinServerVersion <= LOOKIN_SUPPORTED_SERVER_MAX {
+                        apps.append(DiscoveredApp(
+                            port: port,
+                            serverVersion: Int(response.lookinServerVersion),
+                            deviceID: device.deviceID,
+                            connectionType: "usb"
+                        ))
+                    }
+                    ch.disconnect()
+                } catch {
+                    // port not active on this device — continue
+                }
+            }
+        }
+        return apps
+    }
+
+    /// Connect to a specific discovered app.
+    func connect(to app: DiscoveredApp) throws {
+        if let deviceID = app.deviceID {
+            let tunnelFd = try USBMux().connect(deviceID: deviceID, port: app.port)
+            channel = USBChannel(fd: tunnelFd, deviceID: deviceID, port: app.port)
+        } else {
+            let ch = TCPChannel(port: app.port)
+            try ch.connect()
+            channel = ch
+        }
     }
 
     func disconnect() {
@@ -45,34 +93,24 @@ class LookinClient {
             throw LookinError.noAppFound
         }
 
-        // Create attachment
         let attachment = LookinConnectionAttachment()
         attachment.data = data
         attachment.dataType = 0
 
-        // Archive payload
         let payload = try NSKeyedArchiver.archivedData(withRootObject: attachment, requiringSecureCoding: true)
 
-        // Generate tag
         currentTag = UInt32(Date().timeIntervalSince1970)
         let tag = currentTag
 
-        // Send frame
         try channel.sendFrame(type: type.rawValue, tag: tag, payload: payload)
 
-        // Read response(s)
         while true {
             let (frame, framePayload) = try channel.receiveFrame(timeout: timeout)
 
-            // Check if this is a response to our request
             guard frame.tag == tag else { continue }
 
-            guard let payload = framePayload else {
-                // Empty response (e.g., push message) — skip
-                continue
-            }
+            guard let payload = framePayload else { continue }
 
-            // Decode the response attachment
             let responseAttachment = try NSKeyedUnarchiver.unarchivedObject(
                 ofClass: LookinConnectionResponseAttachment.self,
                 from: payload
@@ -82,7 +120,6 @@ class LookinClient {
                 throw LookinError.serverError(code: -1, message: "Failed to decode response")
             }
 
-            // Check for errors
             if let error = response.error {
                 throw LookinError.serverError(code: error.code, message: error.localizedDescription)
             }
@@ -91,27 +128,17 @@ class LookinClient {
                 throw LookinError.appInBackground
             }
 
-            // Version check
             if response.lookinServerVersion > 0 {
                 if response.lookinServerVersion < LOOKIN_SUPPORTED_SERVER_MIN {
                     throw LookinError.unsupportedVersion(serverVersion: Int(response.lookinServerVersion))
                 }
             }
 
-            // Multi-part response handling
-            if response.dataTotalCount > 1 {
-                // This is a chunked response, data is partial
-                // For now, just return the first part
-                // TODO: Implement full multi-part assembly
-                return response
-            }
-
             return response
         }
     }
 
-    /// Quick ping on a channel without storing state
-    private func sendPing(channel: TCPChannel) throws -> LookinConnectionResponseAttachment {
+    private func sendPing(channel: any LookinChannel) throws -> LookinConnectionResponseAttachment {
         let attachment = LookinConnectionAttachment()
         attachment.data = nil
         attachment.dataType = 0
@@ -136,6 +163,7 @@ class LookinClient {
             throw LookinError.serverError(code: -1, message: "Failed to decode ping response")
         }
 
+        _ = frame  // tag already matched implicitly in discovery
         return attachment
     }
 }
@@ -143,4 +171,6 @@ class LookinClient {
 struct DiscoveredApp {
     let port: Int
     let serverVersion: Int
+    let deviceID: Int?       // nil = simulator
+    let connectionType: String  // "simulator" or "usb"
 }

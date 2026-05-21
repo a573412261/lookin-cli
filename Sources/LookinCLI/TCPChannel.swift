@@ -1,5 +1,12 @@
 import Foundation
 
+protocol LookinChannel {
+    var isConnected: Bool { get }
+    func sendFrame(type: UInt32, tag: UInt32, payload: Data?) throws
+    func receiveFrame(timeout: TimeInterval) throws -> (frame: PTFrame, payload: Data?)
+    func disconnect()
+}
+
 enum LookinError: Error, LocalizedError {
     case connectionFailed(String)
     case connectionClosed
@@ -19,12 +26,12 @@ enum LookinError: Error, LocalizedError {
         case .unsupportedVersion(let v): return "Unsupported server version: \(v)"
         case .appInBackground: return "App is in background"
         case .serverError(let code, let msg): return "Server error (\(code)): \(msg)"
-        case .noAppFound: return "No LookinServer-enabled app found in simulator"
+        case .noAppFound: return "No LookinServer-enabled app found (simulator or USB device)"
         }
     }
 }
 
-class TCPChannel {
+class TCPChannel: LookinChannel {
     private var fd: Int32 = -1
     let port: Int
     let queue = DispatchQueue(label: "lookin.tcp", qos: .userInitiated)

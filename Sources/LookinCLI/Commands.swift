@@ -45,7 +45,6 @@ extension LookinDisplayItem {
     func toJSON(flat: Bool = false, includeChildren: Bool = true) -> [String: Any] {
         var result: [String: Any] = [:]
 
-        // Class info
         if let viewObj = viewObject, let chain = viewObj.classChainList, !chain.isEmpty {
             result["class"] = chain[0]
         }
@@ -53,17 +52,14 @@ extension LookinDisplayItem {
             result["title"] = title
         }
 
-        // OID
         if let viewObj = viewObject {
             result["oid"] = String(format: "0x%lx", viewObj.oid)
         }
 
-        // Geometry
         result["frame"] = rectToJSON(frame)
         result["isHidden"] = isHidden
         result["alpha"] = alpha
 
-        // Children
         if includeChildren, let subitems = subitems, !subitems.isEmpty {
             if flat {
                 result["childrenCount"] = subitems.count
@@ -75,7 +71,6 @@ extension LookinDisplayItem {
         return result
     }
 
-    /// Flatten the entire hierarchy into a flat array
     func flatten() -> [[String: Any]] {
         var result: [LookinDisplayItem] = []
         collectFlat(into: &result)
@@ -97,38 +92,47 @@ private func rectToJSON(_ rect: CGRect) -> [String: Any] {
     ]
 }
 
+// MARK: - Device Selection Helper
+
+private func selectApp(from apps: [DiscoveredApp], deviceID: Int?) -> DiscoveredApp? {
+    if let deviceID {
+        return apps.first(where: { $0.deviceID == deviceID })
+    }
+    return apps.first
+}
+
 // MARK: - Command Implementations
 
-func cmdPing() {
+func cmdPing(deviceID: Int? = nil) {
     let client = LookinClient()
     let apps = client.discoverPorts()
 
-    if apps.isEmpty {
-        print(jsonOutput(["apps": []]))
-        return
-    }
+    let filtered = deviceID != nil ? apps.filter { $0.deviceID == deviceID } : apps
 
-    let appsJson = apps.map { app -> [String: Any] in
-        return [
+    let appsJson = filtered.map { app -> [String: Any] in
+        var entry: [String: Any] = [
             "port": app.port,
             "serverVersion": app.serverVersion,
+            "connectionType": app.connectionType,
         ]
+        if let id = app.deviceID {
+            entry["deviceID"] = id
+        }
+        return entry
     }
     print(jsonOutput(["apps": appsJson]))
 }
 
-func cmdHierarchy(flat: Bool, filter: String?) {
+func cmdHierarchy(flat: Bool, filter: String?, deviceID: Int? = nil) {
     let client = LookinClient()
-
-    // First discover
     let apps = client.discoverPorts()
-    guard let app = apps.first else {
+    guard let app = selectApp(from: apps, deviceID: deviceID) else {
         print(jsonOutput(["error": "No LookinServer-enabled app found"]))
         return
     }
 
     do {
-        try client.connect(port: app.port)
+        try client.connect(to: app)
         let response = try client.sendRequest(type: .hierarchy)
 
         guard let hierarchyInfo = response.data as? LookinHierarchyInfo else {
@@ -141,7 +145,6 @@ func cmdHierarchy(flat: Bool, filter: String?) {
             return
         }
 
-        // Apply filter
         var filteredItems = items
         if let filter = filter, !filter.isEmpty {
             filteredItems = filterItems(items, filter: filter)
@@ -162,19 +165,17 @@ func cmdHierarchy(flat: Bool, filter: String?) {
     }
 }
 
-func cmdInspect(oid: String, includeScreenshot: Bool) {
+func cmdInspect(oid: String, includeScreenshot: Bool, deviceID: Int? = nil) {
     let client = LookinClient()
-
     let apps = client.discoverPorts()
-    guard let app = apps.first else {
+    guard let app = selectApp(from: apps, deviceID: deviceID) else {
         print(jsonOutput(["error": "No app found"]))
         return
     }
 
     do {
-        try client.connect(port: app.port)
+        try client.connect(to: app)
 
-        // First get hierarchy to find the item
         let hierarchyResponse = try client.sendRequest(type: .hierarchy)
         guard let hierarchyInfo = hierarchyResponse.data as? LookinHierarchyInfo,
               let items = hierarchyInfo.displayItems else {
@@ -182,7 +183,6 @@ func cmdInspect(oid: String, includeScreenshot: Bool) {
             return
         }
 
-        // Find the item with matching OID
         guard let targetItem = findItem(items, oid: oid) else {
             print(jsonOutput(["error": "View with oid \(oid) not found"]))
             return
@@ -190,7 +190,6 @@ func cmdInspect(oid: String, includeScreenshot: Bool) {
 
         var result = targetItem.toJSON(includeChildren: false)
 
-        // Add view/layer object details
         if let viewObj = targetItem.viewObject {
             result["viewObject"] = viewObj.toJSON()
             result["class"] = viewObj.classChainList?.first ?? "Unknown"
@@ -203,7 +202,6 @@ func cmdInspect(oid: String, includeScreenshot: Bool) {
             result["hostViewControllerClass"] = vcObj.classChainList?.first ?? ""
         }
 
-        // Add attributes
         if let attrGroups = targetItem.attributesGroupList {
             var attrs: [[String: Any]] = []
             for group in attrGroups {
@@ -218,7 +216,6 @@ func cmdInspect(oid: String, includeScreenshot: Bool) {
             result["attributes"] = attrs
         }
 
-        // Add background color if available
         if let bgColor = targetItem.backgroundColor, bgColor.count >= 4 {
             result["backgroundColor"] = [
                 "r": bgColor[0],
@@ -240,17 +237,16 @@ func cmdInspect(oid: String, includeScreenshot: Bool) {
     }
 }
 
-func cmdSearch(classFilter: String?, textFilter: String?, accessibilityLabel: String?) {
+func cmdSearch(classFilter: String?, textFilter: String?, accessibilityLabel: String?, deviceID: Int? = nil) {
     let client = LookinClient()
-
     let apps = client.discoverPorts()
-    guard let app = apps.first else {
+    guard let app = selectApp(from: apps, deviceID: deviceID) else {
         print(jsonOutput(["error": "No app found"]))
         return
     }
 
     do {
-        try client.connect(port: app.port)
+        try client.connect(to: app)
         let response = try client.sendRequest(type: .hierarchy)
 
         guard let hierarchyInfo = response.data as? LookinHierarchyInfo,
@@ -264,7 +260,7 @@ func cmdSearch(classFilter: String?, textFilter: String?, accessibilityLabel: St
             item.collectFlat(into: &allItems)
         }
 
-        var results = allItems.compactMap { item -> [String: Any]? in
+        let results = allItems.compactMap { item -> [String: Any]? in
             let className = item.viewObject?.classChainList?.first ?? ""
             let title = item.customDisplayTitle ?? ""
 
@@ -289,7 +285,7 @@ func cmdSearch(classFilter: String?, textFilter: String?, accessibilityLabel: St
     }
 }
 
-func cmdModify(oid: String, attr: String, value: String) {
+func cmdModify(oid: String, attr: String, value: String, deviceID: Int? = nil) {
     print(jsonOutput([
         "error": "Modify command requires LookinServer protocol details for \(attr)",
         "oid": oid,

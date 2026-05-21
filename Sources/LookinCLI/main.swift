@@ -11,12 +11,15 @@ guard let command = args.first else {
 
 switch command {
 case "ping":
-    cmdPing()
+    let opts = parseOptions(args)
+    let deviceID = opts["device"].flatMap { Int($0) }
+    cmdPing(deviceID: deviceID)
 case "hierarchy":
     let opts = parseOptions(args)
     let flat = opts["flat"] != nil
     let filter = opts["filter"]
-    cmdHierarchy(flat: flat, filter: filter)
+    let deviceID = opts["device"].flatMap { Int($0) }
+    cmdHierarchy(flat: flat, filter: filter, deviceID: deviceID)
 case "inspect":
     guard args.count >= 2 else {
         fputs("Error: oid required\n", stderr)
@@ -25,13 +28,16 @@ case "inspect":
     let opts = parseOptions(args)
     let oid = args[1].hasPrefix("-") ? "" : args[1]
     let screenshot = opts["screenshot"] != nil
-    cmdInspect(oid: oid, includeScreenshot: screenshot)
+    let deviceID = opts["device"].flatMap { Int($0) }
+    cmdInspect(oid: oid, includeScreenshot: screenshot, deviceID: deviceID)
 case "search":
     let opts = parseOptions(args)
+    let deviceID = opts["device"].flatMap { Int($0) }
     cmdSearch(
         classFilter: opts["class"],
         textFilter: opts["text"],
-        accessibilityLabel: opts["accessibility-label"]
+        accessibilityLabel: opts["accessibility-label"],
+        deviceID: deviceID
     )
 case "modify":
     let opts = parseOptions(args)
@@ -39,7 +45,8 @@ case "modify":
         fputs("Error: --oid, --attr, and --value required\n", stderr)
         exit(1)
     }
-    cmdModify(oid: oid, attr: attr, value: value)
+    let deviceID = opts["device"].flatMap { Int($0) }
+    cmdModify(oid: oid, attr: attr, value: value, deviceID: deviceID)
 case "mcp":
     MCPServer().run()
 case "--help", "-h":
@@ -60,7 +67,7 @@ func printUsage() {
       lookin-cli <command> [options]
 
     COMMANDS:
-      ping                             Discover connectable iOS apps
+      ping                             Discover connectable iOS apps (simulator + USB)
       hierarchy [--flat] [--filter X]  Get view hierarchy (JSON)
       inspect <oid> [--screenshot]     Inspect a specific view
       search [--class X] [--text X]    Search views by criteria
@@ -68,6 +75,7 @@ func printUsage() {
       mcp                              Start as MCP server (stdio)
 
     OPTIONS:
+      --device <id>  Target a specific USB device by its usbmuxd device ID
       -h, --help     Show this help message
       --version      Show version
     """)

@@ -58,11 +58,16 @@ class MCPServer {
     }
 
     private func toolDefinitions() -> [[String: Any]] {
+        let deviceProp: [String: Any] = ["type": "integer", "description": "usbmuxd device ID for real device (omit for simulator)"]
         return [
             [
                 "name": "lookin_ping",
-                "description": "Discover iOS apps running LookinServer in the simulator",
-                "inputSchema": ["type": "object", "properties": [:], "required": []],
+                "description": "Discover iOS apps running LookinServer in the simulator or on USB-connected real devices",
+                "inputSchema": [
+                    "type": "object",
+                    "properties": ["device": deviceProp],
+                    "required": [],
+                ],
             ],
             [
                 "name": "lookin_hierarchy",
@@ -72,6 +77,7 @@ class MCPServer {
                     "properties": [
                         "flat": ["type": "boolean", "description": "Return flat list instead of tree"],
                         "filter": ["type": "string", "description": "Filter views by class name"],
+                        "device": deviceProp,
                     ],
                     "required": [],
                 ],
@@ -84,6 +90,7 @@ class MCPServer {
                     "properties": [
                         "oid": ["type": "string", "description": "Object ID (e.g. 0x7ff12340000)"],
                         "screenshot": ["type": "boolean", "description": "Include screenshot info"],
+                        "device": deviceProp,
                     ],
                     "required": ["oid"],
                 ],
@@ -97,6 +104,7 @@ class MCPServer {
                         "class": ["type": "string", "description": "Filter by class name"],
                         "text": ["type": "string", "description": "Filter by text content"],
                         "accessibilityLabel": ["type": "string", "description": "Filter by accessibility label"],
+                        "device": deviceProp,
                     ],
                     "required": [],
                 ],
@@ -110,6 +118,7 @@ class MCPServer {
                         "oid": ["type": "string", "description": "Object ID"],
                         "attr": ["type": "string", "description": "Attribute name"],
                         "value": ["type": "string", "description": "New value as JSON"],
+                        "device": deviceProp,
                     ],
                     "required": ["oid", "attr", "value"],
                 ],
@@ -119,15 +128,16 @@ class MCPServer {
 
     private func handleToolCall(id: Any?, name: String, arguments: [String: Any]) {
         var result: String
+        let deviceID = arguments["device"] as? Int
 
         switch name {
         case "lookin_ping":
-            result = captureOutput { cmdPing() }
+            result = captureOutput { cmdPing(deviceID: deviceID) }
 
         case "lookin_hierarchy":
             let flat = arguments["flat"] as? Bool ?? false
             let filter = arguments["filter"] as? String
-            result = captureOutput { cmdHierarchy(flat: flat, filter: filter) }
+            result = captureOutput { cmdHierarchy(flat: flat, filter: filter, deviceID: deviceID) }
 
         case "lookin_inspect":
             guard let oid = arguments["oid"] as? String else {
@@ -135,13 +145,13 @@ class MCPServer {
                 return
             }
             let screenshot = arguments["screenshot"] as? Bool ?? false
-            result = captureOutput { cmdInspect(oid: oid, includeScreenshot: screenshot) }
+            result = captureOutput { cmdInspect(oid: oid, includeScreenshot: screenshot, deviceID: deviceID) }
 
         case "lookin_search":
             let classFilter = arguments["class"] as? String
             let textFilter = arguments["text"] as? String
             let accLabel = arguments["accessibilityLabel"] as? String
-            result = captureOutput { cmdSearch(classFilter: classFilter, textFilter: textFilter, accessibilityLabel: accLabel) }
+            result = captureOutput { cmdSearch(classFilter: classFilter, textFilter: textFilter, accessibilityLabel: accLabel, deviceID: deviceID) }
 
         case "lookin_modify":
             guard let oid = arguments["oid"] as? String,
@@ -150,7 +160,7 @@ class MCPServer {
                 sendError(id: id, code: -32602, message: "Missing required parameters: oid, attr, value")
                 return
             }
-            result = captureOutput { cmdModify(oid: oid, attr: attr, value: value) }
+            result = captureOutput { cmdModify(oid: oid, attr: attr, value: value, deviceID: deviceID) }
 
         default:
             sendError(id: id, code: -32602, message: "Unknown tool: \(name)")

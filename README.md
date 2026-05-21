@@ -4,13 +4,13 @@ A CLI tool and MCP server for [Lookin](https://lookin.work/) — designed for AI
 
 ## What It Does
 
-`lookin-cli` connects to iOS apps running [LookinServer](https://github.com/QMUI/LookinServer) via TCP, retrieves view hierarchy and property data, and outputs structured JSON — making iOS UI inspection accessible to AI coding agents, automation scripts, and terminal workflows.
+`lookin-cli` connects to iOS apps running [LookinServer](https://github.com/QMUI/LookinServer) via TCP (simulator) or TCP-over-USB (real device), retrieves view hierarchy and property data, and outputs structured JSON — making iOS UI inspection accessible to AI coding agents, automation scripts, and terminal workflows.
 
 ## Prerequisites
 
 - macOS 12.0+
 - iOS app with [LookinServer](https://github.com/QMUI/LookinServer) integrated (CocoaPods or SPM)
-- App running in iOS Simulator
+- App running in iOS Simulator **or** on a USB-connected real device
 
 ## Installation
 
@@ -52,11 +52,13 @@ After configuration, the AI agent gets these tools:
 
 | Tool | Description |
 |------|-------------|
-| `lookin_ping` | Discover connectable iOS apps |
+| `lookin_ping` | Discover connectable iOS apps (simulator + USB real device) |
 | `lookin_hierarchy` | Get the full view hierarchy tree |
 | `lookin_inspect` | Get detailed attributes of a specific view |
 | `lookin_modify` | Modify a view attribute at runtime |
 | `lookin_search` | Search views by class name, title, or accessibility label |
+
+All tools accept an optional `device` integer parameter to target a specific USB-connected device by its usbmuxd device ID (omit for simulator or first available).
 
 ### Option 2: Skill
 
@@ -80,14 +82,17 @@ This installs the skill into your project's local directories (`.claude/skills/`
 ## CLI Usage (for humans or scripts)
 
 ```bash
-lookin-cli ping                              # Discover connectable apps
+lookin-cli ping                              # Discover apps (simulator + USB)
+lookin-cli ping --device 5                   # Filter to a specific USB device
 lookin-cli hierarchy                         # View hierarchy (JSON tree)
 lookin-cli hierarchy --flat --filter UILabel # Flat list of UILabels
+lookin-cli hierarchy --device 5              # Hierarchy from real device
 lookin-cli inspect 0x1ed                     # Inspect a specific view
 lookin-cli search --class UIButton --text OK # Search views
-lookin-cli screenshot --oid 0x1ed -o x.png   # Export screenshot
 lookin-cli mcp                               # Start MCP server
 ```
+
+`--device <id>` can be combined with any command. Get the device ID from `lookin-cli ping`.
 
 ## Output Format
 
@@ -101,6 +106,17 @@ All commands output JSON to stdout:
   "isHidden": false,
   "alpha": 1,
   "children": [...]
+}
+```
+
+`ping` output includes `connectionType` (`"simulator"` or `"usb"`) and `deviceID` (USB only):
+
+```json
+{
+  "apps": [
+    {"port": 47164, "serverVersion": 7, "connectionType": "simulator"},
+    {"port": 47175, "serverVersion": 7, "connectionType": "usb", "deviceID": 5}
+  ]
 }
 ```
 
