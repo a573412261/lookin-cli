@@ -1,7 +1,5 @@
 import Foundation
 
-// MARK: - Entry Point
-
 registerLookinClasses()
 
 let args = Array(CommandLine.arguments.dropFirst())
@@ -14,13 +12,11 @@ guard let command = args.first else {
 switch command {
 case "ping":
     cmdPing()
-
 case "hierarchy":
     let opts = parseOptions(args)
     let flat = opts["flat"] != nil
     let filter = opts["filter"]
     cmdHierarchy(flat: flat, filter: filter)
-
 case "inspect":
     guard args.count >= 2 else {
         fputs("Error: oid required\n", stderr)
@@ -30,7 +26,6 @@ case "inspect":
     let oid = args[1].hasPrefix("-") ? "" : args[1]
     let screenshot = opts["screenshot"] != nil
     cmdInspect(oid: oid, includeScreenshot: screenshot)
-
 case "search":
     let opts = parseOptions(args)
     cmdSearch(
@@ -38,7 +33,6 @@ case "search":
         textFilter: opts["text"],
         accessibilityLabel: opts["accessibility-label"]
     )
-
 case "screenshot":
     let opts = parseOptions(args)
     guard let oid = opts["oid"], let output = opts["output"] else {
@@ -46,7 +40,6 @@ case "screenshot":
         exit(1)
     }
     cmdScreenshot(oid: oid, outputPath: output)
-
 case "modify":
     let opts = parseOptions(args)
     guard let oid = opts["oid"], let attr = opts["attr"], let value = opts["value"] else {
@@ -54,23 +47,17 @@ case "modify":
         exit(1)
     }
     cmdModify(oid: oid, attr: attr, value: value)
-
 case "mcp":
     MCPServer().run()
-
 case "--help", "-h":
     printUsage()
-
 case "--version":
     print("lookin-cli 0.1.0")
-
 default:
     fputs("Unknown command: \(command)\n", stderr)
     printUsage()
     exit(1)
 }
-
-// MARK: - Helpers
 
 func printUsage() {
     print("""

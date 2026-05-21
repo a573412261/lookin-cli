@@ -47,7 +47,7 @@ class LookinConnectionResponseAttachment: NSObject, NSSecureCoding {
         dataTotalCount = (coder.decodeObject(of: NSNumber.self, forKey: "dataTotalCount") as? NSNumber)?.intValue ?? 0
         currentDataCount = (coder.decodeObject(of: NSNumber.self, forKey: "currentDataCount") as? NSNumber)?.intValue ?? 0
         appIsInBackground = coder.decodeBool(forKey: "appIsInBackground")
-        data = coder.decodeObject(forKey: "0")
+        data = coder.decodeObject(of: [LookinHierarchyInfo.self, LookinAppInfo.self, LookinDisplayItem.self, LookinObject.self, LookinAttribute.self, NSArray.self, NSDictionary.self, NSString.self, NSNumber.self, NSData.self], forKey: "0")
     }
 
     func encode(with coder: NSCoder) {
@@ -136,7 +136,7 @@ class LookinObject: NSObject, NSSecureCoding {
         super.init()
         oid = (coder.decodeObject(of: NSNumber.self, forKey: "oid") as? NSNumber)?.uintValue ?? 0
         memoryAddress = coder.decodeObject(of: NSString.self, forKey: "memoryAddress") as? String
-        classChainList = coder.decodeObject(of: [NSString.self], forKey: "classChainList") as? [String]
+        classChainList = coder.decodeObject(of: [NSArray.self, NSString.self], forKey: "classChainList") as? [String]
         specialTrace = coder.decodeObject(of: NSString.self, forKey: "specialTrace") as? String
     }
 
@@ -154,6 +154,7 @@ class LookinObject: NSObject, NSSecureCoding {
 
 @objc(LookinDisplayItem)
 class LookinDisplayItem: NSObject, NSSecureCoding {
+    @objc var customInfo: LookinCustomDisplayItemInfo?
     @objc var viewObject: LookinObject?
     @objc var layerObject: LookinObject?
     @objc var hostViewControllerObject: LookinObject?
@@ -176,6 +177,7 @@ class LookinDisplayItem: NSObject, NSSecureCoding {
 
     required init?(coder: NSCoder) {
         super.init()
+        customInfo = coder.decodeObject(of: LookinCustomDisplayItemInfo.self, forKey: "customInfo")
         viewObject = coder.decodeObject(of: LookinObject.self, forKey: "viewObject")
         layerObject = coder.decodeObject(of: LookinObject.self, forKey: "layerObject")
         hostViewControllerObject = coder.decodeObject(of: LookinObject.self, forKey: "hostViewControllerObject")
@@ -193,9 +195,9 @@ class LookinDisplayItem: NSObject, NSSecureCoding {
             bounds = Self.parseCGRect(boundsStr) ?? CGRect()
         }
 
-        attributesGroupList = coder.decodeObject(of: [NSArray.self], forKey: "attributesGroupList") as? [Any]
-        customAttrGroupList = coder.decodeObject(of: [NSArray.self], forKey: "customAttrGroupList") as? [Any]
-        eventHandlers = coder.decodeObject(of: [NSArray.self], forKey: "eventHandlers") as? [Any]
+        attributesGroupList = coder.decodeObject(of: [NSArray.self, LookinAttributesGroup.self], forKey: "attributesGroupList") as? [Any]
+        customAttrGroupList = coder.decodeObject(of: [NSArray.self, LookinAttributesGroup.self], forKey: "customAttrGroupList") as? [Any]
+        eventHandlers = coder.decodeObject(of: [NSArray.self, LookinEventHandler.self], forKey: "eventHandlers") as? [Any]
         customDisplayTitle = coder.decodeObject(of: NSString.self, forKey: "customDisplayTitle") as? String
 
         if coder.containsValue(forKey: "shouldCaptureImage") {
@@ -309,6 +311,240 @@ class LookinAttribute: NSObject, NSSecureCoding {
     static var supportsSecureCoding: Bool { true }
 }
 
+// MARK: LookinStringTwoTuple
+
+@objc(LookinStringTwoTuple)
+class LookinStringTwoTuple: NSObject, NSSecureCoding {
+    @objc var first: String?
+    @objc var second: String?
+
+    override init() { super.init() }
+
+    required init?(coder: NSCoder) {
+        super.init()
+        first = coder.decodeObject(of: NSString.self, forKey: "first") as? String
+        second = coder.decodeObject(of: NSString.self, forKey: "second") as? String
+    }
+
+    func encode(with coder: NSCoder) {
+        coder.encode(first, forKey: "first")
+        coder.encode(second, forKey: "second")
+    }
+
+    static var supportsSecureCoding: Bool { true }
+}
+
+// MARK: LookinEventHandler
+
+@objc(LookinEventHandler)
+class LookinEventHandler: NSObject, NSSecureCoding {
+    @objc var handlerType: Int = 0
+    @objc var eventName: String?
+    @objc var targetActions: [LookinStringTwoTuple]?
+    @objc var inheritedRecognizerName: String?
+    @objc var gestureRecognizerIsEnabled: Bool = false
+    @objc var gestureRecognizerDelegator: String?
+    @objc var recognizerIvarTraces: [String]?
+    @objc var recognizerOid: UInt = 0
+
+    override init() { super.init() }
+
+    required init?(coder: NSCoder) {
+        super.init()
+        handlerType = coder.decodeInteger(forKey: "handlerType")
+        eventName = coder.decodeObject(of: NSString.self, forKey: "eventName") as? String
+        targetActions = coder.decodeObject(of: [NSArray.self, LookinStringTwoTuple.self], forKey: "targetActions") as? [LookinStringTwoTuple]
+        inheritedRecognizerName = coder.decodeObject(of: NSString.self, forKey: "inheritedRecognizerName") as? String
+        gestureRecognizerIsEnabled = coder.decodeBool(forKey: "gestureRecognizerIsEnabled")
+        gestureRecognizerDelegator = coder.decodeObject(of: NSString.self, forKey: "gestureRecognizerDelegator") as? String
+        recognizerIvarTraces = coder.decodeObject(of: [NSArray.self, NSString.self], forKey: "recognizerIvarTraces") as? [String]
+        recognizerOid = (coder.decodeObject(of: NSNumber.self, forKey: "recognizerOid") as? NSNumber)?.uintValue ?? 0
+    }
+
+    func encode(with coder: NSCoder) {
+        coder.encode(handlerType, forKey: "handlerType")
+        coder.encode(eventName, forKey: "eventName")
+        coder.encode(targetActions, forKey: "targetActions")
+        coder.encode(inheritedRecognizerName, forKey: "inheritedRecognizerName")
+        coder.encode(gestureRecognizerIsEnabled, forKey: "gestureRecognizerIsEnabled")
+        coder.encode(gestureRecognizerDelegator, forKey: "gestureRecognizerDelegator")
+        coder.encode(recognizerIvarTraces, forKey: "recognizerIvarTraces")
+        coder.encode(NSNumber(value: recognizerOid), forKey: "recognizerOid")
+    }
+
+    static var supportsSecureCoding: Bool { true }
+}
+
+// MARK: LookinAttributesSection
+
+@objc(LookinAttributesSection)
+class LookinAttributesSection: NSObject, NSSecureCoding {
+    @objc var identifier: String?
+    @objc var attributes: [LookinAttribute]?
+
+    override init() { super.init() }
+
+    required init?(coder: NSCoder) {
+        super.init()
+        identifier = coder.decodeObject(of: NSString.self, forKey: "identifier") as? String
+        attributes = coder.decodeObject(of: [NSArray.self, LookinAttribute.self], forKey: "attributes") as? [LookinAttribute]
+    }
+
+    func encode(with coder: NSCoder) {
+        coder.encode(identifier, forKey: "identifier")
+        coder.encode(attributes, forKey: "attributes")
+    }
+
+    static var supportsSecureCoding: Bool { true }
+}
+
+// MARK: LookinAttributesGroup
+
+@objc(LookinAttributesGroup)
+class LookinAttributesGroup: NSObject, NSSecureCoding {
+    @objc var userCustomTitle: String?
+    @objc var identifier: String?
+    @objc var attrSections: [LookinAttributesSection]?
+
+    override init() { super.init() }
+
+    required init?(coder: NSCoder) {
+        super.init()
+        userCustomTitle = coder.decodeObject(of: NSString.self, forKey: "userCustomTitle") as? String
+        identifier = coder.decodeObject(of: NSString.self, forKey: "identifier") as? String
+        attrSections = coder.decodeObject(of: [NSArray.self, LookinAttributesSection.self], forKey: "attrSections") as? [LookinAttributesSection]
+    }
+
+    func encode(with coder: NSCoder) {
+        coder.encode(userCustomTitle, forKey: "userCustomTitle")
+        coder.encode(identifier, forKey: "identifier")
+        coder.encode(attrSections, forKey: "attrSections")
+    }
+
+    static var supportsSecureCoding: Bool { true }
+}
+
+// MARK: LookinIvarTrace
+
+@objc(LookinIvarTrace)
+class LookinIvarTrace: NSObject, NSSecureCoding {
+    @objc var relation: String?
+    @objc var hostClassName: String?
+    @objc var ivarName: String?
+
+    override init() { super.init() }
+
+    required init?(coder: NSCoder) {
+        super.init()
+        relation = coder.decodeObject(of: NSString.self, forKey: "relation") as? String
+        hostClassName = coder.decodeObject(of: NSString.self, forKey: "hostClassName") as? String
+        ivarName = coder.decodeObject(of: NSString.self, forKey: "ivarName") as? String
+    }
+
+    func encode(with coder: NSCoder) {
+        coder.encode(relation, forKey: "relation")
+        coder.encode(hostClassName, forKey: "hostClassName")
+        coder.encode(ivarName, forKey: "ivarName")
+    }
+
+    static var supportsSecureCoding: Bool { true }
+}
+
+// MARK: LookinCustomDisplayItemInfo
+
+@objc(LookinCustomDisplayItemInfo)
+class LookinCustomDisplayItemInfo: NSObject, NSSecureCoding {
+    @objc var title: String?
+    @objc var subtitle: String?
+    @objc var danceuiSource: String?
+
+    override init() { super.init() }
+
+    required init?(coder: NSCoder) {
+        super.init()
+        title = coder.decodeObject(of: NSString.self, forKey: "title") as? String
+        subtitle = coder.decodeObject(of: NSString.self, forKey: "subtitle") as? String
+        danceuiSource = coder.decodeObject(of: NSString.self, forKey: "danceuiSource") as? String
+    }
+
+    func encode(with coder: NSCoder) {
+        coder.encode(title, forKey: "title")
+        coder.encode(subtitle, forKey: "subtitle")
+        coder.encode(danceuiSource, forKey: "danceuiSource")
+    }
+
+    static var supportsSecureCoding: Bool { true }
+}
+
+// MARK: LookinAutoLayoutConstraint
+
+@objc(LookinAutoLayoutConstraint)
+class LookinAutoLayoutConstraint: NSObject, NSSecureCoding {
+    @objc var effective: Bool = false
+    @objc var active: Bool = false
+    @objc var shouldBeArchived: Bool = false
+    @objc var firstItem: LookinObject?
+    @objc var firstItemType: Int = 0
+    @objc var firstAttribute: Int = 0
+    @objc var relation: Int = 0
+    @objc var secondItem: LookinObject?
+    @objc var secondItemType: Int = 0
+    @objc var secondAttribute: Int = 0
+    @objc var multiplier: Double = 1.0
+    @objc var constant: Double = 0
+    @objc var priority: Double = 1000
+    @objc var identifier: String?
+
+    override init() { super.init() }
+
+    required init?(coder: NSCoder) {
+        super.init()
+        effective = coder.decodeBool(forKey: "effective")
+        active = coder.decodeBool(forKey: "active")
+        shouldBeArchived = coder.decodeBool(forKey: "shouldBeArchived")
+        firstItem = coder.decodeObject(of: LookinObject.self, forKey: "firstItem")
+        firstItemType = coder.decodeInteger(forKey: "firstItemType")
+        firstAttribute = coder.decodeInteger(forKey: "firstAttribute")
+        relation = coder.decodeInteger(forKey: "relation")
+        secondItem = coder.decodeObject(of: LookinObject.self, forKey: "secondItem")
+        secondItemType = coder.decodeInteger(forKey: "secondItemType")
+        secondAttribute = coder.decodeInteger(forKey: "secondAttribute")
+        multiplier = coder.decodeDouble(forKey: "multiplier")
+        constant = coder.decodeDouble(forKey: "constant")
+        priority = coder.decodeDouble(forKey: "priority")
+        identifier = coder.decodeObject(of: NSString.self, forKey: "identifier") as? String
+    }
+
+    func encode(with coder: NSCoder) {
+        coder.encode(effective, forKey: "effective")
+        coder.encode(active, forKey: "active")
+        coder.encode(shouldBeArchived, forKey: "shouldBeArchived")
+        coder.encode(firstItem, forKey: "firstItem")
+        coder.encode(firstItemType, forKey: "firstItemType")
+        coder.encode(firstAttribute, forKey: "firstAttribute")
+        coder.encode(relation, forKey: "relation")
+        coder.encode(secondItem, forKey: "secondItem")
+        coder.encode(secondItemType, forKey: "secondItemType")
+        coder.encode(secondAttribute, forKey: "secondAttribute")
+        coder.encode(multiplier, forKey: "multiplier")
+        coder.encode(constant, forKey: "constant")
+        coder.encode(priority, forKey: "priority")
+        coder.encode(identifier, forKey: "identifier")
+    }
+
+    static var supportsSecureCoding: Bool { true }
+}
+
+// MARK: LookinDashboardBlueprint
+
+@objc(LookinDashboardBlueprint)
+class LookinDashboardBlueprint: NSObject, NSSecureCoding {
+    override init() { super.init() }
+    required init?(coder: NSCoder) { super.init() }
+    func encode(with coder: NSCoder) {}
+    static var supportsSecureCoding: Bool { true }
+}
+
 // MARK: - Register all model classes for NSKeyedUnarchiver
 
 func registerLookinClasses() {
@@ -319,4 +555,12 @@ func registerLookinClasses() {
     NSKeyedUnarchiver.setClass(LookinDisplayItem.self, forClassName: "LookinDisplayItem")
     NSKeyedUnarchiver.setClass(LookinHierarchyInfo.self, forClassName: "LookinHierarchyInfo")
     NSKeyedUnarchiver.setClass(LookinAttribute.self, forClassName: "LookinAttribute")
+    NSKeyedUnarchiver.setClass(LookinEventHandler.self, forClassName: "LookinEventHandler")
+    NSKeyedUnarchiver.setClass(LookinStringTwoTuple.self, forClassName: "LookinStringTwoTuple")
+    NSKeyedUnarchiver.setClass(LookinAttributesGroup.self, forClassName: "LookinAttributesGroup")
+    NSKeyedUnarchiver.setClass(LookinAttributesSection.self, forClassName: "LookinAttributesSection")
+    NSKeyedUnarchiver.setClass(LookinIvarTrace.self, forClassName: "LookinIvarTrace")
+    NSKeyedUnarchiver.setClass(LookinCustomDisplayItemInfo.self, forClassName: "LookinCustomDisplayItemInfo")
+    NSKeyedUnarchiver.setClass(LookinAutoLayoutConstraint.self, forClassName: "LookinAutoLayoutConstraint")
+    NSKeyedUnarchiver.setClass(LookinDashboardBlueprint.self, forClassName: "LookinDashboardBlueprint")
 }
