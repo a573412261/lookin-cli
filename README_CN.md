@@ -14,11 +14,17 @@
 
 ## 安装
 
+一行命令：
+
 ```bash
-git clone https://github.com/a573412261/lookin-cli.git
-cd lookin-cli
-swift build -c release
-cp .build/release/lookin-cli /usr/local/bin/
+curl -fsSL https://raw.githubusercontent.com/a573412261/lookin-cli/main/install.sh | bash
+```
+
+或手动安装：
+
+```bash
+git clone https://github.com/a573412261/lookin-cli.git && cd lookin-cli
+swift build -c release && cp .build/release/lookin-cli /usr/local/bin/
 ```
 
 ## 使用
